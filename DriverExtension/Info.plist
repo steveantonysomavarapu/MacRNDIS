@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleIdentifier</key>
+  <string>com.example.macrndis.driver</string>
+  <key>CFBundleName</key>
+  <string>MacRNDISDriver</string>
+  <key>CFBundlePackageType</key>
+  <string>DEXT</string>
+  <key>CFBundleVersion</key>
+  <string>1</string>
+  <key>OSBundleCompatibleVersion</key>
+  <string>1</string>
+  <key>OSBundleLibraries</key>
+  <dict>
+    <key>com.apple.driverkit.IOUSBHostFamily</key>
+    <string>1.0</string>
+    <key>com.apple.driverkit.IOUserNetworkFamily</key>
+    <string>1.0</string>
+  </dict>
+  <key>IOKitPersonalities</key>
+  <dict>
+    <key>MacRNDISDriver</key>
+    <dict>
+      <key>CFBundleIdentifier</key>
+      <string>com.example.macrndis.driver</string>
+      <key>IOClass</key>
+      <string>MacRNDISDriver</string>
+      <key>IOProviderClass</key>
+      <string>IOUSBHostInterface</string>
+      <key>IOUSBHostInterfaceClass</key>
+      <integer>224</integer>
+      <key>IOUSBHostInterfaceSubClass</key>
+      <integer>1</integer>
+      <key>IOUSBHostInterfaceProtocol</key>
+      <integer>3</integer>
+    </dict>
+  </dict>
+</dict>
+</plist>
