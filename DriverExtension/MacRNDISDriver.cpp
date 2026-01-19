@@ -1,10 +1,9 @@
 #include "MacRNDISDriver.hpp"
-
 #include <DriverKit/OSLog.h>
 
-#define kRNDISInterfaceClass 0xE0
-#define kRNDISInterfaceSubClass 0x01
-#define kRNDISInterfaceProtocol 0x03
+#define kRNDISInterfaceClass     0xE0
+#define kRNDISInterfaceSubClass  0x01
+#define kRNDISInterfaceProtocol  0x03
 
 OSDefineMetaClassAndStructors(MacRNDISDriver, IOService);
 
@@ -35,7 +34,8 @@ bool MacRNDISDriver::Start(IOService *provider) {
   transportCallbacks.onDataReceived = OnDataReceived;
   transportCallbacks.onDeviceError = OnDeviceError;
 
-  if (!transport->Init(usbInterface, transportCallbacks) || !transport->ConfigurePipes()) {
+  if (!transport->Init(usbInterface, transportCallbacks) ||
+      !transport->ConfigurePipes()) {
     OSLog("MacRNDISDriver: failed to configure USB transport\n");
     ReleaseResources();
     return false;
@@ -64,7 +64,8 @@ bool MacRNDISDriver::Start(IOService *provider) {
     return false;
   }
 
-  if (!networkInterface->Attach(this) || !networkInterface->Start(this)) {
+  if (!networkInterface->Attach(this) ||
+      !networkInterface->Start(this)) {
     ReleaseResources();
     return false;
   }
@@ -86,15 +87,17 @@ bool MacRNDISDriver::MatchRNDISInterface(IOUSBHostInterface *interface) {
     return false;
   }
 
-  const IOUSBHostInterfaceDescriptor *descriptor = interface->GetInterfaceDescriptor();
+  const IOUSBHostInterfaceDescriptor *descriptor =
+    interface->GetInterfaceDescriptor();
+
   if (descriptor == nullptr) {
     OSLog("MacRNDISDriver: missing interface descriptor\n");
     return false;
   }
 
-  return descriptor->bInterfaceClass == kRNDISInterfaceClass &&
-    descriptor->bInterfaceSubClass == kRNDISInterfaceSubClass &&
-    descriptor->bInterfaceProtocol == kRNDISInterfaceProtocol;
+  return descriptor->bInterfaceClass    == kRNDISInterfaceClass &&
+         descriptor->bInterfaceSubClass == kRNDISInterfaceSubClass &&
+         descriptor->bInterfaceProtocol == kRNDISInterfaceProtocol;
 }
 
 void MacRNDISDriver::ReleaseResources() {
@@ -120,58 +123,59 @@ void MacRNDISDriver::ReleaseResources() {
   usbInterface = nullptr;
 }
 
-void MacRNDISDriver::OnControlResponse(OSObject *target, const void *buffer, uint32_t length) {
-  auto *driver = OSDynamicCast(MacRNDISDriver, target);
-  if (driver == nullptr || driver->protocol == nullptr) {
-    return;
-  }
+// ================= Callbacks =================
 
-  driver->protocol->HandleControlResponse(buffer, length);
+void MacRNDISDriver::OnControlResponse(OSObject *target,
+                                      const void *buffer,
+                                      uint32_t length) {
+  auto *driver = OSDynamicCast(MacRNDISDriver, target);
+  if (driver && driver->protocol) {
+    driver->protocol->HandleControlResponse(buffer, length);
+  }
 }
 
-void MacRNDISDriver::OnDataReceived(OSObject *target, const void *buffer, uint32_t length) {
+void MacRNDISDriver::OnDataReceived(OSObject *target,
+                                    const void *buffer,
+                                    uint32_t length) {
   auto *driver = OSDynamicCast(MacRNDISDriver, target);
-  if (driver == nullptr || driver->protocol == nullptr) {
-    return;
+  if (driver && driver->protocol) {
+    driver->protocol->HandleDataMessage(buffer, length);
   }
-
-  driver->protocol->HandleDataMessage(buffer, length);
 }
 
 void MacRNDISDriver::OnDeviceError(OSObject *target) {
   auto *driver = OSDynamicCast(MacRNDISDriver, target);
-  if (driver == nullptr) {
-    return;
-  }
-
-  if (driver->networkInterface != nullptr) {
-    driver->networkInterface->UpdateLinkState(false, 0, RNDISEthernetAddress {});
+  if (driver && driver->networkInterface) {
+    driver->networkInterface->UpdateLinkState(
+      false, 0, RNDISEthernetAddress {}
+    );
   }
 }
 
-void MacRNDISDriver::OnLinkUp(OSObject *target, const RNDISProtocol::State &state) {
+void MacRNDISDriver::OnLinkUp(OSObject *target,
+                              const RNDISProtocol::State &state) {
   auto *driver = OSDynamicCast(MacRNDISDriver, target);
-  if (driver == nullptr || driver->networkInterface == nullptr) {
-    return;
+  if (driver && driver->networkInterface) {
+    driver->networkInterface->UpdateLinkState(
+      true, state.maxTransferSize, state.macAddress
+    );
   }
-
-  driver->networkInterface->UpdateLinkState(true, state.maxTransferSize, state.macAddress);
 }
 
 void MacRNDISDriver::OnLinkDown(OSObject *target) {
   auto *driver = OSDynamicCast(MacRNDISDriver, target);
-  if (driver == nullptr || driver->networkInterface == nullptr) {
-    return;
+  if (driver && driver->networkInterface) {
+    driver->networkInterface->UpdateLinkState(
+      false, 0, RNDISEthernetAddress {}
+    );
   }
-
-  driver->networkInterface->UpdateLinkState(false, 0, RNDISEthernetAddress {});
 }
 
-void MacRNDISDriver::OnPacketReceived(OSObject *target, const uint8_t *data, uint32_t length) {
+void MacRNDISDriver::OnPacketReceived(OSObject *target,
+                                      const uint8_t *data,
+                                      uint32_t length) {
   auto *driver = OSDynamicCast(MacRNDISDriver, target);
-  if (driver == nullptr || driver->networkInterface == nullptr) {
-    return;
+  if (driver && driver->networkInterface) {
+    driver->networkInterface->SubmitInboundPacket(data, length);
   }
-
-  driver->networkInterface->SubmitInboundPacket(data, length);
 }
